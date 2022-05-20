@@ -3,7 +3,6 @@ mod godbolt;
 mod misc;
 mod moderation;
 mod playground;
-mod prefixes;
 
 use poise::serenity_prelude as serenity;
 
@@ -98,7 +97,6 @@ pub struct Data {
     reports_channel: Option<serenity::ChannelId>,
     bot_start_time: std::time::Instant,
     http: reqwest::Client,
-    database: sqlx::SqlitePool,
     godbolt_targets: std::sync::Mutex<godbolt::GodboltTargets>,
     active_slowmodes:
         std::sync::Mutex<std::collections::HashMap<serenity::ChannelId, ActiveSlowmode>>,
@@ -118,8 +116,6 @@ async fn app() -> Result<(), Error> {
     let discord_token = env_var::<String>("DISCORD_TOKEN")?;
     let mod_role_id = env_var("MOD_ROLE_ID")?;
     let reports_channel = env_var("REPORTS_CHANNEL_ID").ok();
-    let database_url = env_var::<String>("DATABASE_URL")?;
-    let custom_prefixes = env_var("CUSTOM_PREFIXES")?;
 
     let mut options = poise::FrameworkOptions {
         commands: vec![
@@ -167,11 +163,7 @@ async fn app() -> Result<(), Error> {
             edit_tracker: Some(poise::EditTracker::for_timespan(
                 std::time::Duration::from_secs(3600 * 24 * 2),
             )),
-            stripped_dynamic_prefix: if custom_prefixes {
-                Some(|ctx, msg, data| Box::pin(prefixes::try_strip_prefix(ctx, msg, data)))
-            } else {
-                None
-            },
+            stripped_dynamic_prefix: None,
             ..Default::default()
         },
         pre_command: |ctx| {
@@ -205,31 +197,9 @@ async fn app() -> Result<(), Error> {
         ..Default::default()
     };
 
-    if custom_prefixes {
-        options.commands.push(poise::Command {
-            subcommands: vec![
-                prefixes::prefix_add(),
-                prefixes::prefix_remove(),
-                prefixes::prefix_list(),
-                prefixes::prefix_reset(),
-            ],
-            ..prefixes::prefix()
-        });
-    }
-
     if reports_channel.is_some() {
         options.commands.push(moderation::report());
     }
-
-    let database = sqlx::sqlite::SqlitePoolOptions::new()
-        .max_connections(5)
-        .connect_with(
-            database_url
-                .parse::<sqlx::sqlite::SqliteConnectOptions>()?
-                .create_if_missing(true),
-        )
-        .await?;
-    sqlx::migrate!("./migrations").run(&database).await?;
 
     poise::Framework::build()
         .token(discord_token)
@@ -243,7 +213,6 @@ async fn app() -> Result<(), Error> {
                     reports_channel,
                     bot_start_time: std::time::Instant::now(),
                     http: reqwest::Client::new(),
-                    database,
                     godbolt_targets: std::sync::Mutex::new(godbolt::GodboltTargets::default()),
                     active_slowmodes: std::sync::Mutex::new(std::collections::HashMap::new()),
                 })
