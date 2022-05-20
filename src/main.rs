@@ -4,7 +4,6 @@ mod misc;
 mod moderation;
 mod playground;
 mod prefixes;
-mod showcase;
 
 use poise::serenity_prelude as serenity;
 
@@ -73,20 +72,11 @@ code here
 }
 
 async fn listener(
-    ctx: &serenity::Context,
-    event: &poise::Event<'_>,
-    data: &Data,
+    _ctx: &serenity::Context,
+    _event: &poise::Event<'_>,
+    _data: &Data,
 ) -> Result<(), Error> {
-    match event {
-        poise::Event::MessageUpdate { event, .. } => {
-            showcase::try_update_showcase_message(ctx, data, event.id).await?
-        }
-        poise::Event::MessageDelete {
-            deleted_message_id, ..
-        } => showcase::try_delete_showcase_message(ctx, data, *deleted_message_id).await?,
-        _ => {}
-    }
-
+    // TODO: remove this function, probably
     Ok(())
 }
 
@@ -106,7 +96,6 @@ pub struct Data {
     #[allow(dead_code)] // might add back in
     mod_role_id: serenity::RoleId,
     reports_channel: Option<serenity::ChannelId>,
-    showcase_channel: serenity::ChannelId,
     bot_start_time: std::time::Instant,
     http: reqwest::Client,
     database: sqlx::SqlitePool,
@@ -129,7 +118,6 @@ async fn app() -> Result<(), Error> {
     let discord_token = env_var::<String>("DISCORD_TOKEN")?;
     let mod_role_id = env_var("MOD_ROLE_ID")?;
     let reports_channel = env_var("REPORTS_CHANNEL_ID").ok();
-    let showcase_channel = env_var("SHOWCASE_CHANNEL_ID")?;
     let database_url = env_var::<String>("DATABASE_URL")?;
     let custom_prefixes = env_var("CUSTOM_PREFIXES")?;
 
@@ -155,7 +143,6 @@ async fn app() -> Result<(), Error> {
             moderation::ban(),
             moderation::move_(),
             moderation::slowmode(),
-            showcase::showcase(),
             misc::go(),
             misc::source(),
             misc::help(),
@@ -254,7 +241,6 @@ async fn app() -> Result<(), Error> {
                     bot_user_id: bot.user.id,
                     mod_role_id,
                     reports_channel,
-                    showcase_channel,
                     bot_start_time: std::time::Instant::now(),
                     http: reqwest::Client::new(),
                     database,
