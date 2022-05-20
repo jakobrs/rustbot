@@ -70,15 +70,6 @@ code here
     }
 }
 
-async fn listener(
-    _ctx: &serenity::Context,
-    _event: &poise::Event<'_>,
-    _data: &Data,
-) -> Result<(), Error> {
-    // TODO: remove this function, probably
-    Ok(())
-}
-
 #[derive(Clone, Debug)]
 pub struct ActiveSlowmode {
     previous_slowmode_rate: u64,
@@ -163,7 +154,6 @@ async fn app() -> Result<(), Error> {
             edit_tracker: Some(poise::EditTracker::for_timespan(
                 std::time::Duration::from_secs(3600 * 24 * 2),
             )),
-            stripped_dynamic_prefix: None,
             ..Default::default()
         },
         pre_command: |ctx| {
@@ -193,7 +183,6 @@ async fn app() -> Result<(), Error> {
             })
         },
         on_error: |error| Box::pin(on_error(error)),
-        listener: |ctx, event, _framework, data| Box::pin(listener(ctx, event, data)),
         ..Default::default()
     };
 
