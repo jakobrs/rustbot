@@ -15,7 +15,7 @@ pub async fn go(ctx: Context<'_>) -> Result<(), Error> {
     category = "Miscellaneous"
 )]
 pub async fn source(ctx: Context<'_>) -> Result<(), Error> {
-    ctx.say("https://github.com/kangalioo/rustbot").await?;
+    ctx.say("https://github.com/jakobrs/rustbot/tree/personal-fork").await?;
     Ok(())
 }
 
