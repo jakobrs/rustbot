@@ -137,6 +137,7 @@ async fn app() -> Result<(), Error> {
             misc::uptime(),
             misc::servers(),
             misc::revision(),
+            misc::conradluget(),
         ],
         prefix_options: poise::PrefixFrameworkOptions {
             prefix: Some("?".into()),
@@ -208,12 +209,11 @@ async fn app() -> Result<(), Error> {
             })
         })
         .options(options)
-        .client_settings(move |client_builder| {
-            client_builder.intents(
-                serenity::GatewayIntents::non_privileged()
-                    | serenity::GatewayIntents::GUILD_MEMBERS,
-            )
-        })
+        .intents(
+            serenity::GatewayIntents::non_privileged()
+                | serenity::GatewayIntents::GUILD_MEMBERS
+                | serenity::GatewayIntents::MESSAGE_CONTENT,
+        )
         .run()
         .await?;
     Ok(())
@@ -258,7 +258,7 @@ async fn acknowledge_success(
                 Some(e) => e.to_string(),
                 None => fallback.to_string(),
             };
-            if let Ok(Some(reply)) = ctx.say(msg_content).await {
+            if let Ok(reply) = ctx.say(msg_content).await {
                 tokio::time::sleep(std::time::Duration::from_secs(3)).await;
                 let msg = reply.message().await?;
                 // ignore errors as to not fail if ephemeral

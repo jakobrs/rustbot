@@ -194,7 +194,7 @@ pub fn hoise_crate_attributes(code: &str, after_crate_attrs: &str, after_code: &
 /// To check, whether a wrap was done, check if the return type is Cow::Borrowed vs Cow::Owned
 /// If a wrap was done, also hoists crate attributes to the top so they keep working
 pub fn maybe_wrap(code: &str, result_handling: ResultHandling) -> Cow<'_, str> {
-    if code.contains("fn main") {
+    if code.contains("fn main") || code.contains("#![no_main]") {
         return Cow::Borrowed(code);
     }
 
@@ -242,7 +242,7 @@ pub async fn send_reply(
 
     let mut text_end = String::from("```");
     if timeout {
-        text_end += "Playground timeout detected. Retry?";
+        text_end += "Playground timeout detected";
     }
 
     let text = crate::trim_text(
@@ -257,6 +257,7 @@ pub async fn send_reply(
     )
     .await;
 
+    let custom_button_id = ctx.id().to_string();
     let mut response = ctx
         .send(|b| {
             if timeout {
@@ -265,7 +266,7 @@ pub async fn send_reply(
                         b.create_button(|b| {
                             b.label("Retry")
                                 .style(serenity::ButtonStyle::Primary)
-                                .custom_id(0)
+                                .custom_id(&custom_button_id)
                         })
                     })
                 });
@@ -273,11 +274,11 @@ pub async fn send_reply(
             b.content(text)
         })
         .await?
-        .unwrap()
         .message()
         .await?;
     if let Some(retry_pressed) = response
         .await_component_interaction(&ctx.discord().shard)
+        .filter(move |x| x.data.custom_id == custom_button_id)
         .timeout(std::time::Duration::from_secs(600))
         .await
     {
